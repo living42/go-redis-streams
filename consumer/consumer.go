@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 // A Message is a consumed message from a redis stream.
@@ -86,14 +86,12 @@ func New(client *redis.Client, group, consumer string, options ...Option) *Consu
 func (c *Consumer) Read(ctx context.Context) ([]Message, error) {
 	for {
 		streams := make([]string, 0, len(c.cfg.streams)*2)
-		for _, stream := range c.cfg.streams {
-			streams = append(streams, stream)
-		}
+		streams = append(streams, c.cfg.streams...)
 		for _, stream := range c.cfg.streams {
 			streams = append(streams, c.lastIDs[stream])
 		}
 
-		cmd := c.client.WithContext(ctx).XReadGroup(&redis.XReadGroupArgs{
+		cmd := c.client.XReadGroup(ctx, &redis.XReadGroupArgs{
 			Group:    c.cfg.group,
 			Consumer: c.cfg.consumer,
 			Streams:  streams,
@@ -149,9 +147,9 @@ func (c *Consumer) Ack(ctx context.Context, msgs ...Message) error {
 		ids[msg.Stream] = append(ids[msg.Stream], msg.ID)
 	}
 
-	_, err := c.client.WithContext(ctx).Pipelined(func(p redis.Pipeliner) error {
+	_, err := c.client.Pipelined(ctx, func(p redis.Pipeliner) error {
 		for stream, msgIDs := range ids {
-			p.XAck(stream, c.cfg.group, msgIDs...)
+			p.XAck(ctx, stream, c.cfg.group, msgIDs...)
 		}
 		return nil
 	})

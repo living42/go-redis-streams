@@ -1,15 +1,16 @@
 //+go build integration
 
-package redis_test
+package main
 
 import (
 	"context"
 	"fmt"
-	"github.com/badgerodon/go-redis/consumer"
-	"github.com/badgerodon/go-redis/producer"
-	"github.com/go-redis/redis"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/badgerodon/go-redis-streams/consumer"
+	"github.com/badgerodon/go-redis-streams/producer"
+	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test(t *testing.T) {
@@ -17,11 +18,11 @@ func Test(t *testing.T) {
 
 	client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 
-	client.Pipelined(func(p redis.Pipeliner) error {
+	client.Pipelined(ctx, func(p redis.Pipeliner) error {
 		for i := 1; i <= 2; i++ {
-			p.XDel(fmt.Sprintf("test-stream-%d", i))
-			p.XGroupDestroy(fmt.Sprintf("test-stream-%d", i), "test-group")
-			p.XGroupCreateMkStream(fmt.Sprintf("test-stream-%d", i), "test-group", "$")
+			p.XDel(ctx, fmt.Sprintf("test-stream-%d", i))
+			p.XGroupDestroy(ctx, fmt.Sprintf("test-stream-%d", i), "test-group")
+			p.XGroupCreateMkStream(ctx, fmt.Sprintf("test-stream-%d", i), "test-group", "$")
 		}
 		return nil
 	})
@@ -59,7 +60,7 @@ func Test(t *testing.T) {
 			{Stream: "test-stream-2", ID: ids[1], Values: map[string]interface{}{"key": "value"}},
 		}, msgs)
 
-		err = c.Ack(msgs...)
+		err = c.Ack(ctx, msgs...)
 		assert.NoError(t, err)
 
 		msgs, err = c.Read(ctx)

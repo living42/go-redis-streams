@@ -3,13 +3,13 @@ package producer
 import (
 	"context"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 type config struct {
-	stream       string
-	maxLen       int64
-	maxLenApprox int64
+	stream string
+	maxLen int64
+	approx bool
 }
 
 // An Option adjusts the config for a producer.
@@ -19,13 +19,15 @@ type Option func(*config)
 func WithMaxLen(maxLen int64) Option {
 	return func(cfg *config) {
 		cfg.maxLen = maxLen
+		cfg.approx = false
 	}
 }
 
 // WithMaxLenApprox sets the approximate max length for a producer.
 func WithMaxLenApprox(maxLenApprox int64) Option {
 	return func(cfg *config) {
-		cfg.maxLenApprox = maxLenApprox
+		cfg.maxLen = maxLenApprox
+		cfg.approx = true
 	}
 }
 
@@ -78,12 +80,12 @@ func (p *Producer) Write(ctx context.Context, options ...WriteOption) (string, e
 		opt(cfg)
 	}
 
-	cmd := p.client.WithContext(ctx).XAdd(&redis.XAddArgs{
-		Stream:       p.cfg.stream,
-		MaxLen:       p.cfg.maxLen,
-		MaxLenApprox: p.cfg.maxLenApprox,
-		ID:           cfg.id,
-		Values:       cfg.values,
+	cmd := p.client.XAdd(ctx, &redis.XAddArgs{
+		Stream: p.cfg.stream,
+		MaxLen: p.cfg.maxLen,
+		Approx: p.cfg.approx,
+		ID:     cfg.id,
+		Values: cfg.values,
 	})
 	return cmd.Result()
 }
