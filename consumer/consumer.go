@@ -56,13 +56,13 @@ func WithNoAck(noAck bool) Option {
 
 // A Consumer consumes messages from a stream.
 type Consumer struct {
-	client  *redis.Client
+	client  redis.UniversalClient
 	cfg     *config
 	lastIDs map[string]string
 }
 
 // New creates a new consumer.
-func New(client *redis.Client, group, consumer string, options ...Option) *Consumer {
+func New(client redis.UniversalClient, group, consumer string, options ...Option) *Consumer {
 	cfg := &config{
 		group:    group,
 		consumer: consumer,

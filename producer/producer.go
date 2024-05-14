@@ -33,12 +33,12 @@ func WithMaxLenApprox(maxLenApprox int64) Option {
 
 // A Producer writes messages to a stream.
 type Producer struct {
-	client *redis.Client
+	client redis.UniversalClient
 	cfg    *config
 }
 
 // New creates a new Producer.
-func New(client *redis.Client, stream string, options ...Option) *Producer {
+func New(client redis.UniversalClient, stream string, options ...Option) *Producer {
 	cfg := &config{
 		stream: stream,
 	}
